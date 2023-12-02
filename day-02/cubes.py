@@ -50,6 +50,10 @@ class Game:
         """True if the game would be possible if the number of cubes in the bag is 'c'"""
         return self.red <= c.red and self.green <= c.green and self.blue <= c.blue
 
+    @property
+    def power(self) -> int:
+        return self.red * self.green * self.blue
+
 
 def parse_games(filename: str) -> tuple[Game, ...]:
     """Return all games defined in the input file"""
@@ -71,6 +75,13 @@ def part_i(filename: str) -> int:
     print(f'{total=}')
 
 
+def part_ii(filename: str) -> int:
+    total = 0
+    for game in parse_games(input_path):
+        total += game.power
+    print(f'{total=}')
+
+
 
 if __name__ == '__main__':
 
@@ -78,6 +89,8 @@ if __name__ == '__main__':
     
     if part == '1':
         part_i(input_path)
+    elif part == '2':
+        part_ii(input_path)
     else:
         raise ValueError(f'No such {part=}')
 
