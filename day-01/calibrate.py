@@ -1,7 +1,9 @@
 """Advent of Code 2023 Day 1"""
 
+import sys
 from pathlib import Path
 import re
+import click
 
 
 INPUT_PATH = Path('input.txt')
@@ -60,10 +62,6 @@ def part_i(txt):
     print(f'{total=}')
 
 
-# TODO: problem! need to do a match that does not permit overlaps...
-# FAIL: 53254 is too high
-
-
 def part_ii(txt: str):
 
     total = 0
@@ -101,13 +99,19 @@ def part_iib(txt: str):
     print(f'{total=}')
             
 
-        
-
-
 
 if __name__ == '__main__':
 
-    with open(INPUT_PATH, 'r') as fp:
-        input_txt = fp.read()
+    _, input_path, part = sys.argv
 
-    part_iib(input_txt)
+    with open(input_path, 'r') as fp:
+       input_txt = fp.read()
+
+    if part == '1':
+        part_i(input_txt)
+
+    elif part == '2':
+        part_iib(input_txt)
+
+    else:
+        raise ValueError('Invalid {part=}')
