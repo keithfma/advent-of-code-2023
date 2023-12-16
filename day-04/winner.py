@@ -63,17 +63,10 @@ if __name__ == '__main__':
     total_cards = 0
     for ii, card in enumerate(cards):
 
-        while card.copies:
-            
-            # print(card)
+        total_cards += card.copies
 
-            total_cards += 1
-            card.copies -= 1
-            # print(card)
-            # print()
-
-            for jj in range(ii + 1, ii + 1 + card.num_matches()):
-                cards[jj].copies += 1 
+        for jj in range(ii + 1, ii + 1 + card.num_matches()):
+            cards[jj].copies += card.copies 
 
     print(f'{total_cards=}')
     
