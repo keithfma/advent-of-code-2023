@@ -42,20 +42,11 @@ def part_i(filename: str):
 
     print(f'{total_value=}')
 
-if __name__ == '__main__':
 
-    _, input_path, part = sys.argv
-    
-    if part == '1': 
-        part_i(input_path)
-    elif part =='2':
-        pass
-    else:
-        raise ValueError(f'Bad part number: {part}')
+def part_ii(filename: str):
 
-    # parse cards
     cards = [] 
-    with open(input_path, 'r') as fp:
+    with open(filename, 'r') as fp:
         for line in fp.readlines():
             cards.append(Card.parse(line))
 
@@ -69,6 +60,16 @@ if __name__ == '__main__':
             cards[jj].copies += card.copies 
 
     print(f'{total_cards=}')
-    
 
+
+if __name__ == '__main__':
+
+    _, input_path, part = sys.argv
+    
+    if part == '1': 
+        part_i(input_path)
+    elif part =='2':
+        part_ii(input_path)
+    else:
+        raise ValueError(f'Bad part number: {part}')
 
