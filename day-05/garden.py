@@ -14,6 +14,7 @@ class Range:
     end: int
 
     def contains(self, value: int): 
+        """Return True if the range contains the input value"""
         return self.start <= value <= self.end
 
     def intersection(self, other: Range) -> Optional[Range]:
@@ -77,10 +78,6 @@ class Transformer:
                 if intersection := this_range.intersection(rule_range):
                     # the rule applies to at least part of the range
 
-                    # print(f'{rule_range=}, {rule_offset=}')
-                    # print(f'{this_range=}, {intersection=}')
-                    # print('')
-
                     # transform the overlap, then these values are completed (at
                     #  most one rule applies to each value)
                     complete.append(
@@ -90,7 +87,7 @@ class Transformer:
                         )
                     )
 
-                    # put the non-overlapping portion(s) of the range aside to check against the 
+                    # set the non-overlapping portion(s) of the range aside to check against the 
                     #   rest of the rules 
                     next_ranges.extend(
                         this_range.difference(rule_range)
@@ -109,19 +106,19 @@ class Transformer:
 
 
 def _parse_chunks(filename: str) -> list[str]:
-    """TODO"""
+    """Break up input text file into 'chunks' that define seeds and transformers"""
     with open(filename, 'r') as fp:
         chunks = re.findall(r'[\w-].*:([ \d\n]*)', fp.read())
     return [x.strip() for x in chunks]
 
 
 def _parse_seeds(txt: str) -> list[int]:
-    """TODO"""
+    """Parse seeds text chunk as a list of scalar seeds"""
     return [int(x) for x in txt.split()]
     
 
 def _parse_seed_ranges(txt: str) -> list[Range]:
-    """TODO"""
+    """Parse seeds text chunk as a list of seed ranges"""
 
     values = [int(x) for x in txt.strip().split()]
     ranges = []
@@ -135,7 +132,7 @@ def _parse_seed_ranges(txt: str) -> list[Range]:
 
 
 def _parse_transformer(txt: str) -> Transformer:
-    """TODO"""
+    """Parse transformer text chunks"""
 
     rules = []
 
@@ -148,17 +145,15 @@ def _parse_transformer(txt: str) -> Transformer:
     return Transformer(tuple(rules))
 
 
-def _parse_transformers(txts: list[str]) -> list[Transformer]:
-    """TODO"""
-    return [_parse_transformer(txt) for txt in txts]
-
 
 
 def part_i(filename: str):
 
+    print('Part 1 -----')
+
     chunks = _parse_chunks(filename)
     seeds = _parse_seeds(chunks[0])
-    transformers = _parse_transformers(chunks[1:])
+    transformers = [_parse_transformer(x) for x in chunks[1:]]
 
     locations = []
     for value in seeds:
@@ -170,10 +165,12 @@ def part_i(filename: str):
     
 
 def part_ii(filename: str):
-    """TODO"""
+
+    print('Part 2 -----')
+
     chunks = _parse_chunks(filename)
     seed_ranges = _parse_seed_ranges(chunks[0])
-    transformers = _parse_transformers(chunks[1:])
+    transformers = [_parse_transformer(x) for x in chunks[1:]]
 
     ranges = seed_ranges
 
