@@ -6,11 +6,7 @@ import attrs
 from typing import Optional, Union
 
 
-# TODO: too many interfaces. I think we just want a Range and a Transformer class.
-# The intermediate Transform is not so helpful.
-
-
-@attrs.frozen
+@attrs.frozen(order=True)
 class Range:
     """Range of integers, including endpoint values"""
 
@@ -39,130 +35,158 @@ class Range:
             parts.append(Range(other.end + 1, self.end))
 
         return tuple(parts)
-        
+
 
 @attrs.frozen
-class Transform:
+class Transformer:
+    """Piecewise transform defined by a set of "rules"
 
-    src: Range
-    dest: Range
+    Each rule defines a range and an integer offset. If a value is within a
+    given range, it is transformed by adding the corresponding offset. If not,
+    it is not transformed.
+    """
 
-    @classmethod
-    def from_txt(cls, txt: str):
-        dest_start, src_start, length = (int(x) for x in txt.strip().split())
-        return cls(
-            Range(src_start, src_start + length -1),
-            Range(dest_start, dest_start + length -1),
-        )
-
-    def scalar(self, value: int) -> Optional[int]:
-        """Return transformed value, or None if the transform does not apply"""
-        if self.src.contains(value):
-            delta = value - self.src.start
-            return self.dest.start + delta
-        return None
-
-    def range(self, value: Range) -> tuple[Optional[Range], tuple[Range, ...]]:
-        """Apply transform to the input range, returning...
-        + Transformed portion of the input range, or None if the transform does not apply
-        + Untransformed portion(s) of the input range
-        """
-        intersection = self.src.intersection(value)
-        
-        if intersection is not None:
-            transformed = Range(self.scalar(intersection.start), self.scalar(intersection.end)),
-            return transformed, self.src.difference(value)
-        
-        else:
-            return None, (value,)
-       
-
-@attrs.frozen
-class TransformSet:
-    
-    transforms: tuple[Transform, ...]
-
-    @classmethod
-    def from_txt(cls, txt: str):
-        return cls(
-            tuple(Transform.from_txt(x) for x in txt.strip().splitlines())
-        )
+    rules: tuple[tuple[Range, int], ...]
 
     def scalar(self, value: int) -> int:
-        for transform in self.transforms:
-            new_value = transform.scalar(value)
-            if new_value is not None:
-                return new_value 
-        # no transformers apply, return value unchanged
+        """Transform scalar integer
+        """
+        for rng, offset in self.rules:
+            if rng.contains(value):
+                return value + offset
         return value
-
+    
     def range(self, value: Range) -> tuple[Range, ...]:
-        """Apply all transforms to the input range"""
+        """Transform range
 
-        unmapped = [value]
-        mapped = []
- 
-        for transform in self.transforms:
+        Returns a tuple of ranges, because the transformation rules may apply
+        to only some parts of the input range, and transforming these parts "splits"
+        the original range into multiple output ranges.
+        """
+        ranges = [value]
+        complete = []
+        
+        for rule_range, rule_offset in self.rules:
             
-            next_unmapped = []
+            # create a place to store range(s) that were not transformed by this rule, to be checked
+            #   against the next one
+            next_ranges = []
 
-            for this in unmapped:
-                result = transform.range(this)
-                if result[0] is not None:
-                    mapped.append(result[0])
-                next_unmapped.extend(result[1])
-            
-            unmapped = next_unmapped
+            for this_range in ranges:
+                
+                if intersection := this_range.intersection(rule_range):
+                    # the rule applies to at least part of the range
 
-        return tuple(mapped + unmapped)
-            
-                    
-         
+                    # print(f'{rule_range=}, {rule_offset=}')
+                    # print(f'{this_range=}, {intersection=}')
+                    # print('')
+
+                    # transform the overlap, then these values are completed (at
+                    #  most one rule applies to each value)
+                    complete.append(
+                        Range(
+                            start=intersection.start + rule_offset,
+                            end=intersection.end + rule_offset,
+                        )
+                    )
+
+                    # put the non-overlapping portion(s) of the range aside to check against the 
+                    #   rest of the rules 
+                    next_ranges.extend(
+                        this_range.difference(rule_range)
+                    )
+                
+                else:
+                    # rule does not apply to this input range, set it aside to check against the
+                    #   rest of the rules
+                    next_ranges.append(this_range)
+
+            # try the next rule on all range(s) that have not yet matched a rule
+            ranges = next_ranges
+
+        # combine results, anything not transformed by any rule is returned unchanged
+        return sorted(complete + next_ranges)
 
 
-def parse_input(
-    filename: str, seeds_as_ranges: bool = False
-) -> tuple[Union[tuple[Range, ...], tuple[int, ...]], tuple[TransformSet, ...]]:
-
+def _parse_chunks(filename: str) -> list[str]:
+    """TODO"""
     with open(filename, 'r') as fp:
         chunks = re.findall(r'[\w-].*:([ \d\n]*)', fp.read())
+    return [x.strip() for x in chunks]
 
-    seeds_raw = [int(x) for x in chunks[0].split()]
+
+def _parse_seeds(txt: str) -> list[int]:
+    """TODO"""
+    return [int(x) for x in txt.split()]
     
-    if seeds_as_ranges:
-        seeds = []
-        while seeds_raw:
-            range_start = seeds_raw.pop(0)
-            range_end = range_start + seeds_raw.pop(0) -1
-            seeds.append(Range(range_start, range_end))
 
-    else:
-        seeds = seeds_raw
-        
+def _parse_seed_ranges(txt: str) -> list[Range]:
+    """TODO"""
 
-    trans = []
-    for chunk in chunks[1:]:
-        trans.append(TransformSet.from_txt(chunk))
-    
-    return seeds, tuple(trans)
+    values = [int(x) for x in txt.strip().split()]
+    ranges = []
+
+    while values:
+        start = values.pop(0)
+        end = start + values.pop(0) - 1
+        ranges.append(Range(start, end))
+
+    return ranges
+
+
+def _parse_transformer(txt: str) -> Transformer:
+    """TODO"""
+
+    rules = []
+
+    for line in txt.splitlines():
+        dest_start, src_start, length = (int(x) for x in line.strip().split())
+        rule_range = Range(src_start, src_start + length -1)
+        rule_offset = dest_start - src_start
+        rules.append((rule_range, rule_offset))
+
+    return Transformer(tuple(rules))
+
+
+def _parse_transformers(txts: list[str]) -> list[Transformer]:
+    """TODO"""
+    return [_parse_transformer(txt) for txt in txts]
+
 
 
 def part_i(filename: str):
-    seeds, transform_sets = parse_input(filename)
+
+    chunks = _parse_chunks(filename)
+    seeds = _parse_seeds(chunks[0])
+    transformers = _parse_transformers(chunks[1:])
 
     locations = []
     for value in seeds:
-        for transform_set in transform_sets:
-            value = transform_set.scalar(value)
+        for transformer in transformers:
+            value = transformer.scalar(value)
         locations.append(value)
 
     print(f'{min(locations)=}')
     
 
 def part_ii(filename: str):
-    pass
-    
+    """TODO"""
+    chunks = _parse_chunks(filename)
+    seed_ranges = _parse_seed_ranges(chunks[0])
+    transformers = _parse_transformers(chunks[1:])
 
+    ranges = seed_ranges
+
+    for transformer in transformers:
+
+        next_ranges = []
+        for this in ranges:
+            next_ranges.extend(transformer.range(this))
+             
+        ranges = next_ranges
+
+    minimum_location = min(x.start for x in ranges)
+    print(f'{minimum_location=}')
             
 
 if __name__ == '__main__':
@@ -172,12 +196,5 @@ if __name__ == '__main__':
     if part_number == '1':
         part_i(input_path)
     else:
-        # part_ii(input_path)
-        pass
-
+        part_ii(input_path)
         
-    seed_ranges, transform_sets = parse_input(input_path, seeds_as_ranges=True)
-
-    location_ranges = []
-
-
