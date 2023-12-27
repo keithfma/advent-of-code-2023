@@ -24,24 +24,34 @@ class Hand:
 
     def hand_type(self, jokers: bool = False) -> int:
 
+        counter = Counter(self.cards)
+
         if jokers:
-            raise NotImplementedError
+            # hand is improved most by adding more of the most common card
+            num_jokers = counter.pop('J', 0)
+            counts = sorted(counter.values(), reverse=True)
+            if counts:
+                counts[0] += num_jokers
+            else:
+                counts = [num_jokers]
 
-        counts = tuple(sorted(Counter(self.cards).values(), reverse=True))
+        else:
+            counts = sorted(counter.values(), reverse=True)
 
-        if counts == (5,):
+
+        if counts == [5,]:
             return 7  # 5 of a kind
-        if counts == (4, 1):
+        if counts == [4, 1]:
             return 6  # 4 of a kind
-        if counts == (3, 2):
+        if counts == [3, 2]:
             return 5  # full house
-        if counts == (3, 1, 1):
+        if counts == [3, 1, 1]:
             return 4  # 3 of a kind
-        if counts == (2, 2, 1):
+        if counts == [2, 2, 1]:
             return 3  # 2 pair
-        if counts == (2, 1, 1, 1):
+        if counts == [2, 1, 1, 1]:
             return 2  # one pair
-        if counts == (1, 1, 1, 1, 1):
+        if counts == [1, 1, 1, 1, 1]:
             return 1  # high card
         raise ValueError(f'Unknown hand type: {self.cards}')
 
