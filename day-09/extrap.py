@@ -27,7 +27,16 @@ def part_i(filename: str):
 
 
 def part_ii(filename: str):
-    raise NotImplementedError
+
+    def prev_value(series: np.ndarray) -> int:
+        if len(np.unique(series)) == 1:
+            return series[0]
+        delta = prev_value(np.diff(series))
+        return series[0] - delta
+
+    series_list = parse_input(filename)
+    prev_values = [prev_value(x) for x in series_list]
+    print(f'Sum of extrapolated values is {sum(prev_values)}')
 
 
 if __name__ == '__main__':
@@ -37,11 +46,11 @@ if __name__ == '__main__':
     if part_number == '1':
         part_i(input_filename)
 
-    # elif part_number == '2':
-    #    part_ii(input_filename)
+    elif part_number == '2':
+       part_ii(input_filename)
 
-    # else:
-    #     raise ValueError(f'Invalid part number: {part_number}')
+    else:
+        raise ValueError(f'Invalid part number: {part_number}')
 
 
 
